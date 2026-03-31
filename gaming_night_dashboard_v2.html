@@ -1,0 +1,372 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  .screen { display: none; flex-direction: column; align-items: center; justify-content: center; min-height: 520px; padding: 2rem 1.5rem; text-align: center; }
+  .screen.active { display: flex; }
+
+  .btn-main {
+    background: #534AB7; color: #fff; border: none;
+    border-radius: var(--border-radius-lg); padding: 14px 40px;
+    font-size: 16px; font-weight: 500; cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .btn-main:hover { background: #3C3489; }
+  .btn-main:active { transform: scale(0.97); }
+  .btn-main:disabled { background: var(--color-border-secondary); cursor: not-allowed; }
+
+  .btn-outline {
+    background: transparent; color: var(--color-text-secondary);
+    border: 0.5px solid var(--color-border-secondary);
+    border-radius: var(--border-radius-lg); padding: 10px 28px;
+    font-size: 14px; cursor: pointer; transition: background 0.15s; margin-top: 0.75rem;
+  }
+  .btn-outline:hover { background: var(--color-background-secondary); }
+
+  .step-indicator { display: flex; gap: 6px; margin-bottom: 1.5rem; }
+  .step-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-border-secondary); transition: background 0.2s; }
+  .step-dot.done { background: #534AB7; }
+  .step-dot.active { background: #7F77DD; }
+
+  .glow-bar { width: 60px; height: 3px; background: #7F77DD; border-radius: 2px; margin: 0 auto 2rem; }
+
+  /* ---- WELCOME SCREEN ---- */
+  .code-input {
+    width: 100%; border: 0.5px solid var(--color-border-secondary);
+    border-radius: var(--border-radius-md); padding: 12px 16px;
+    font-size: 18px; font-weight: 500; letter-spacing: 6px; text-align: center;
+    text-transform: uppercase; font-family: var(--font-mono);
+    background: var(--color-background-primary); color: var(--color-text-primary);
+    outline: none; transition: border-color 0.15s;
+  }
+  .code-input:focus { border-color: #534AB7; box-shadow: 0 0 0 3px #EEEDFE; }
+  .code-input.error { border-color: #E24B4A; box-shadow: 0 0 0 3px #FCEBEB; }
+  .error-msg { font-size: 13px; color: #A32D2D; margin-top: 0.5rem; display: none; }
+  .error-msg.show { display: block; }
+
+  .rule-item { display: flex; gap: 12px; align-items: flex-start; padding: 10px 0; border-bottom: 0.5px solid var(--color-border-tertiary); }
+  .rule-item:last-child { border-bottom: none; }
+  .rule-num { background: #EEEDFE; color: #3C3489; font-size: 12px; font-weight: 500; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .rule-text { font-size: 14px; color: var(--color-text-primary); line-height: 1.5; }
+  .rule-text strong { font-weight: 500; }
+  .scroll-rules { max-height: 280px; overflow-y: auto; padding-right: 4px; }
+
+  /* ---- GAME LIST SCREEN ---- */
+  .games-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 10px; max-width: 560px; width: 100%; margin-bottom: 1.75rem;
+  }
+  .game-card {
+    background: var(--color-background-primary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-lg);
+    padding: 14px 10px; text-align: center;
+    transition: border-color 0.2s, transform 0.15s;
+    position: relative; overflow: hidden;
+  }
+  .game-card.highlighted {
+    border: 2px solid #534AB7;
+    background: #EEEDFE;
+    transform: scale(1.04);
+  }
+  .game-num {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: #EEEDFE; color: #3C3489;
+    font-size: 13px; font-weight: 500;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 8px;
+  }
+  .game-card.highlighted .game-num { background: #534AB7; color: #fff; }
+  .game-emoji { font-size: 22px; display: block; margin-bottom: 6px; }
+  .game-name { font-size: 11px; font-weight: 500; color: var(--color-text-primary); line-height: 1.3; }
+  .game-card.highlighted .game-name { color: #3C3489; }
+
+  /* ---- DICE ---- */
+  .dice-wrap { display: flex; flex-direction: column; align-items: center; gap: 1rem; margin-bottom: 1.5rem; }
+
+  .dice {
+    width: 80px; height: 80px;
+    background: var(--color-background-primary);
+    border: 2px solid #534AB7;
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 42px; cursor: pointer;
+    transition: transform 0.1s;
+    user-select: none;
+    position: relative;
+  }
+  .dice:hover { background: #EEEDFE; }
+  .dice:active { transform: scale(0.93); }
+  .dice.rolling { animation: diceRoll 0.6s ease-out; }
+
+  @keyframes diceRoll {
+    0% { transform: rotate(0deg) scale(1); }
+    20% { transform: rotate(-15deg) scale(1.12); }
+    40% { transform: rotate(12deg) scale(0.95); }
+    60% { transform: rotate(-8deg) scale(1.08); }
+    80% { transform: rotate(5deg) scale(0.97); }
+    100% { transform: rotate(0deg) scale(1); }
+  }
+
+  .dice-label { font-size: 13px; color: var(--color-text-secondary); }
+  .result-badge {
+    background: #534AB7; color: #fff;
+    border-radius: var(--border-radius-md); padding: 6px 20px;
+    font-size: 14px; font-weight: 500; display: none;
+  }
+  .result-badge.show { display: inline-block; }
+
+  /* ---- GAME DETAIL SCREEN ---- */
+  .game-detail-header {
+    background: var(--color-background-secondary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-lg);
+    padding: 1.5rem; max-width: 520px; width: 100%;
+    margin-bottom: 1.25rem; text-align: center;
+  }
+  .game-detail-emoji { font-size: 52px; display: block; margin-bottom: 0.75rem; }
+  .game-detail-title { font-size: 20px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 0.5rem; }
+  .game-detail-subtitle { font-size: 14px; color: var(--color-text-secondary); }
+
+  .game-info-card {
+    background: var(--color-background-primary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-lg);
+    padding: 1.25rem 1.5rem; max-width: 520px; width: 100%;
+    text-align: left; margin-bottom: 1.5rem;
+  }
+  .info-row { display: flex; gap: 10px; padding: 9px 0; border-bottom: 0.5px solid var(--color-border-tertiary); align-items: flex-start; }
+  .info-row:last-child { border-bottom: none; }
+  .info-label { font-size: 12px; color: var(--color-text-secondary); font-weight: 500; min-width: 80px; margin-top: 1px; }
+  .info-val { font-size: 13px; color: var(--color-text-primary); line-height: 1.5; }
+
+  .dice-result-strip {
+    background: #EEEDFE; border: 0.5px solid #AFA9EC;
+    border-radius: var(--border-radius-md); padding: 10px 20px;
+    font-size: 14px; color: #3C3489; font-weight: 500;
+    max-width: 520px; width: 100%; margin-bottom: 1.25rem; text-align: center;
+  }
+</style>
+
+<div id="s1" class="screen active">
+  <div class="step-indicator">
+    <div class="step-dot active"></div>
+    <div class="step-dot"></div>
+    <div class="step-dot"></div>
+  </div>
+  <div style="font-size: 72px; margin-bottom: 1.5rem; line-height:1;">🎮</div>
+  <h1 style="font-size: 28px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 0.5rem; line-height:1.3;">Welcome to Constant Breeze<br>Gaming Night</h1>
+  <p style="font-size: 16px; color: var(--color-text-secondary); margin-bottom: 2rem;">An epic evening of games, glory, and good vibes</p>
+  <div class="glow-bar"></div>
+  <div style="display:flex; gap:16px; margin-bottom:2rem; flex-wrap:wrap; justify-content:center;">
+    <div style="background:var(--color-background-secondary); border:0.5px solid var(--color-border-tertiary); border-radius:var(--border-radius-md); padding:12px 20px; font-size:13px; color:var(--color-text-secondary);">🕹️ &nbsp;All skill levels welcome</div>
+    <div style="background:var(--color-background-secondary); border:0.5px solid var(--color-border-tertiary); border-radius:var(--border-radius-md); padding:12px 20px; font-size:13px; color:var(--color-text-secondary);">🏆 &nbsp;Epic prizes await</div>
+  </div>
+  <button class="btn-main" onclick="go('s1','s2')">Next &nbsp;→</button>
+</div>
+
+<div id="s2" class="screen">
+  <div class="step-indicator">
+    <div class="step-dot done"></div>
+    <div class="step-dot active"></div>
+    <div class="step-dot"></div>
+  </div>
+  <h2 style="font-size:22px; font-weight:500; color:var(--color-text-primary); margin-bottom:0.25rem;">Rules &amp; Regulations</h2>
+  <p style="font-size:14px; color:var(--color-text-secondary); margin-bottom:1.25rem;">Read carefully and sign the contract to enter</p>
+  <div style="background:var(--color-background-primary); border:0.5px solid var(--color-border-tertiary); border-radius:var(--border-radius-lg); padding:1.5rem; text-align:left; max-width:560px; width:100%; margin-bottom:1.5rem;">
+    <div style="font-size:18px; font-weight:500; color:var(--color-text-primary); margin-bottom:1rem;">⚔️ &nbsp;The Gaming Night Code</div>
+    <div class="scroll-rules">
+      <div class="rule-item"><div class="rule-num">1</div><div class="rule-text"><strong>Games only.</strong> No discussions about weddings, family matters, relationships, or personal affairs.</div></div>
+      <div class="rule-item"><div class="rule-num">2</div><div class="rule-text"><strong>Good sportsmanship.</strong> Respect all players. Trash talk is a sport — personal attacks are not.</div></div>
+      <div class="rule-item"><div class="rule-num">3</div><div class="rule-text"><strong>No outside drama.</strong> Leave work stress, social gossip, and outside world problems at the door.</div></div>
+      <div class="rule-item"><div class="rule-num">4</div><div class="rule-text"><strong>Full commitment.</strong> Once you enter, you play. No spectating all night.</div></div>
+      <div class="rule-item"><div class="rule-num">5</div><div class="rule-text"><strong>Game decisions are final.</strong> Disputes go to a vote. No whining, no sulking.</div></div>
+      <div class="rule-item"><div class="rule-num">6</div><div class="rule-text"><strong>The vibe is sacred.</strong> Keep energy high, spirits positive, and the fun non-stop.</div></div>
+    </div>
+  </div>
+  <div style="background:var(--color-background-secondary); border:0.5px solid var(--color-border-secondary); border-radius:var(--border-radius-lg); padding:1.25rem 1.5rem; max-width:560px; width:100%; text-align:left; margin-bottom:1rem;">
+    <div style="font-size:13px; color:var(--color-text-secondary); margin-bottom:0.5rem;">CONTRACT AGREEMENT</div>
+    <div style="font-size:15px; font-weight:500; color:var(--color-text-primary); margin-bottom:1rem;">By entering the code, I agree to abide by all Gaming Night rules.</div>
+    <label style="font-size:13px; color:var(--color-text-secondary); display:block; margin-bottom:8px;">Enter the secret code to sign and enter ↓</label>
+    <input class="code-input" id="codeInput" type="text" maxlength="5" placeholder="_ _ _ _ _" oninput="onCodeInput(this)" />
+    <div class="error-msg" id="errMsg">Wrong code. Try again — you know the password!</div>
+  </div>
+  <button class="btn-main" onclick="checkCode()">Sign &amp; Enter →</button>
+  <button class="btn-outline" onclick="go('s2','s1')">← Back</button>
+</div>
+
+<div id="s3" class="screen">
+  <div class="step-indicator">
+    <div class="step-dot done"></div>
+    <div class="step-dot done"></div>
+    <div class="step-dot active"></div>
+  </div>
+
+  <div style="background:#EEEDFE; border:0.5px solid #AFA9EC; border-radius:var(--border-radius-md); padding:8px 20px; font-size:13px; color:#3C3489; font-weight:500; margin-bottom:1.25rem;">
+    Contract signed! You're officially in 🎉
+  </div>
+
+  <h2 style="font-size:22px; font-weight:500; color:var(--color-text-primary); margin-bottom:0.25rem;">6 Games. 1 Dice. Destiny decides.</h2>
+  <p style="font-size:14px; color:var(--color-text-secondary); margin-bottom:1.5rem;">Roll the dice to find out which game you play tonight!</p>
+
+  <div class="games-grid" id="gamesGrid">
+    <div class="game-card" id="gc1"><div class="game-num">1</div><span class="game-emoji">🔪</span><div class="game-name">Virtual Murder Mystery</div></div>
+    <div class="game-card" id="gc2"><div class="game-num">2</div><span class="game-emoji">🧠</span><div class="game-name">Do You Remember This?</div></div>
+    <div class="game-card" id="gc3"><div class="game-num">3</div><span class="game-emoji">✏️</span><div class="game-name">Scribble Day</div></div>
+    <div class="game-card" id="gc4"><div class="game-num">4</div><span class="game-emoji">🌍</span><div class="game-name">Let's Explore the World Together</div></div>
+    <div class="game-card" id="gc5"><div class="game-num">5</div><span class="game-emoji">📝</span><div class="game-name">Name Place Animal Thing</div></div>
+    <div class="game-card" id="gc6"><div class="game-num">6</div><span class="game-emoji">🎬</span><div class="game-name">Bollywood Braze</div></div>
+  </div>
+
+  <div class="dice-wrap">
+    <div class="dice" id="dice" onclick="rollDice()">🎲</div>
+    <div class="dice-label" id="diceLabel">Click the dice to roll!</div>
+    <div class="result-badge" id="resultBadge"></div>
+  </div>
+
+  <button class="btn-main" id="enterGameBtn" style="display:none;" onclick="enterGame()">Enter Game →</button>
+</div>
+
+<div id="s4" class="screen">
+  <div class="step-indicator">
+    <div class="step-dot done"></div>
+    <div class="step-dot done"></div>
+    <div class="step-dot done"></div>
+  </div>
+
+  <div class="game-detail-header" id="gameHeader"></div>
+  <div class="dice-result-strip" id="diceStrip"></div>
+  <div class="game-info-card" id="gameInfoCard"></div>
+
+  <button class="btn-main" onclick="go('s4','s3')">← Roll Again</button>
+</div>
+
+<script>
+const GAMES = [
+  {
+    num: 1, emoji: "🔪", name: "Virtual Murder Mystery",
+    tagline: "Someone did it. Was it you?",
+    how: "One player is secretly the murderer. Through clues, questioning, and deduction — the group must unmask the killer before time runs out.",
+    players: "4–10 players", duration: "30–45 mins", vibe: "Suspense, deception, drama"
+  },
+  {
+    num: 2, emoji: "🧠", name: "Do You Remember This?",
+    tagline: "Test your memory — and your friends!",
+    how: "Players are shown images, sounds, or trivia from the past. First to identify correctly scores a point. Nostalgia guaranteed.",
+    players: "2–12 players", duration: "20–30 mins", vibe: "Nostalgic, fun, quick"
+  },
+  {
+    num: 3, emoji: "✏️", name: "Scribble Day",
+    tagline: "Draw it. Guess it. Lose it.",
+    how: "One player draws a word on screen while others race to guess it in the chat. Bad art is the best art here.",
+    players: "3–12 players", duration: "25–40 mins", vibe: "Creative, chaotic, hilarious"
+  },
+  {
+    num: 4, emoji: "🌍", name: "Let's Explore the World Together",
+    tagline: "A virtual trip around the globe!",
+    how: "Players are dropped into a mystery location via image or clue. First to guess the country or city wins the round. Geography nerds will thrive.",
+    players: "2–10 players", duration: "20–35 mins", vibe: "Educational, adventurous, exciting"
+  },
+  {
+    num: 5, emoji: "📝", name: "Name Place Animal Thing",
+    tagline: "Think fast or think never.",
+    how: "A letter is chosen at random. Players race to fill in Name, Place, Animal, and Thing starting with that letter. Fastest correct answers win.",
+    players: "2–15 players", duration: "15–25 mins", vibe: "Fast-paced, competitive, brain-testing"
+  },
+  {
+    num: 6, emoji: "🎬", name: "Bollywood Braze",
+    tagline: "Lights, camera, filmy action!",
+    how: "Bollywood trivia, song guessing, dialogue matching, and iconic scene re-enactments. The ultimate test of your filmy knowledge.",
+    players: "2–12 players", duration: "25–40 mins", vibe: "Fun, filmy, full drama"
+  }
+];
+
+const DICE_FACES = ["⚀","⚁","⚂","⚃","⚄","⚅"];
+let chosenGame = null;
+let rolling = false;
+
+function go(from, to) {
+  document.getElementById(from).classList.remove('active');
+  document.getElementById(to).classList.add('active');
+}
+
+function onCodeInput(el) {
+  el.classList.remove('error');
+  document.getElementById('errMsg').classList.remove('show');
+  el.value = el.value.toUpperCase();
+}
+
+function checkCode() {
+  const val = document.getElementById('codeInput').value.trim().toUpperCase();
+  const input = document.getElementById('codeInput');
+  if (val === 'IGGAM') {
+    go('s2', 's3');
+  } else {
+    input.classList.add('error');
+    document.getElementById('errMsg').classList.add('show');
+    input.value = ''; input.focus();
+  }
+}
+
+function rollDice() {
+  if (rolling) return;
+  rolling = true;
+
+  document.getElementById('enterGameBtn').style.display = 'none';
+  document.getElementById('resultBadge').classList.remove('show');
+  document.getElementById('diceLabel').textContent = 'Rolling...';
+
+  for (let i = 1; i <= 6; i++) {
+    document.getElementById('gc' + i).classList.remove('highlighted');
+  }
+
+  const dice = document.getElementById('dice');
+  dice.classList.add('rolling');
+
+  let ticks = 0;
+  const totalTicks = 18;
+  const interval = setInterval(() => {
+    const face = Math.floor(Math.random() * 6);
+    dice.textContent = DICE_FACES[face];
+    ticks++;
+    if (ticks >= totalTicks) {
+      clearInterval(interval);
+      const result = Math.floor(Math.random() * 6) + 1;
+      dice.textContent = DICE_FACES[result - 1];
+      chosenGame = GAMES[result - 1];
+
+      setTimeout(() => {
+        dice.classList.remove('rolling');
+        document.getElementById('gc' + result).classList.add('highlighted');
+        document.getElementById('diceLabel').textContent = 'You rolled a ' + result + '!';
+        const badge = document.getElementById('resultBadge');
+        badge.textContent = 'Game: ' + chosenGame.name;
+        badge.classList.add('show');
+        document.getElementById('enterGameBtn').style.display = 'inline-block';
+        rolling = false;
+      }, 100);
+    }
+  }, 60);
+}
+
+function enterGame() {
+  if (!chosenGame) return;
+  const g = chosenGame;
+
+  document.getElementById('gameHeader').innerHTML =
+    '<span class="game-detail-emoji">' + g.emoji + '</span>' +
+    '<div class="game-detail-title">' + g.name + '</div>' +
+    '<div class="game-detail-subtitle">' + g.tagline + '</div>';
+
+  document.getElementById('diceStrip').innerHTML =
+    'You rolled a <strong>' + g.num + '</strong> — the dice have spoken!';
+
+  document.getElementById('gameInfoCard').innerHTML =
+    '<div class="info-row"><div class="info-label">How to play</div><div class="info-val">' + g.how + '</div></div>' +
+    '<div class="info-row"><div class="info-label">Players</div><div class="info-val">' + g.players + '</div></div>' +
+    '<div class="info-row"><div class="info-label">Duration</div><div class="info-val">' + g.duration + '</div></div>' +
+    '<div class="info-row"><div class="info-label">Vibe</div><div class="info-val">' + g.vibe + '</div></div>';
+
+  go('s3', 's4');
+}
+</script>
